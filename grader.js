@@ -27,6 +27,8 @@ var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 var rest = require('restler');
+var content ;
+var util = require('util');
 var assertFileExists = function(infile) {
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
@@ -35,26 +37,37 @@ var assertFileExists = function(infile) {
     }
     return instr;
 };
-var content ;
-var assertURL = function(url) {
-	rest.get(url).on('complete',onrest)
+
+var checkURL = function(url,checksfile) {
+    rest.get(url).on('complete',function(result,response){
+	if (result instanceof Error){
+	    console.error('Error:'+util.format(response.message));
+	    process.exit(1);
+	}else{
+	    console.error("Load content from %s",url);
+	    content = result;
+	    var checkJson = checkIt(url,checksfile,true);
+	    var outJson = JSON.stringify(checkJson, null, 4);
+	    console.log(outJson);
+	}
+    });
 }
 
 var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
 var cheerioUrl = function(){ 
-	
-	rest.get(url).on('complete',function(result,response){
-		var content= cheerio.load(result)
-	});	
+    return cheerio.load(content);
 };
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
 };
 
-var checkHtmlFile = function(htmlfile, checksfile) {
-    $ = cheerioHtmlFile(htmlfile);
+var checkIt = function(path, checksfile, remote) {
+    if(remote)
+	$ = cheerio.load(content);
+    else
+	$ = cheerioHtmlFile(path);
     var checks = loadChecks(checksfile).sort();
     var out = {};
     for(var ii in checks) {
@@ -73,13 +86,18 @@ var clone = function(fn) {
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .option('-f, --file <html_file>', 'Path to index.html')
+        .option('-f, --file <html_file>', 'Path to index.html',clone(assertFileExists))
 	.option('-u, --url <web_addres>', 'webpage to check')
         .parse(process.argv);
-    var checkJson ;
-    checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+
+    if(program.file){
+	var checkJson = checkIt(program.file, program.checks);
+	var outJson = JSON.stringify(checkJson, null, 4);
+	console.log(outJson);
+    }
+    else if(program.url)
+	 checkURL(program.url, program.checks, true);
+    
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
