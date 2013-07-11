@@ -73,7 +73,7 @@ var clone = function(fn) {
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .option('-f, --file <html_file>', 'Path to index.html')
+        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists))
 	.option('-u, --url <web_addres>', 'webpage to check')
         .parse(process.argv);
     var checkJson ;
