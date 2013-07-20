@@ -99,5 +99,5 @@ if(require.main == module) {
 	 checkURL(program.url, program.checks, true);
     
 } else {
-    exports.checkHtmlFile = checkHtmlFile;
+    exports.checkIt = checkIt;
 }
